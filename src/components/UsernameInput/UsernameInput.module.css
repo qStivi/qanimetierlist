@@ -1,0 +1,105 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  margin-bottom: 12px;
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.input {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 10px;
+  background: var(--bg-nested);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.addBtn,
+.loadBtn {
+  padding: 8px 14px;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border);
+  background: var(--bg-nested);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.loadBtn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.loadBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.addBtn:hover {
+  border-color: var(--accent);
+}
+
+.loadBtn:not(:disabled):hover {
+  background: var(--accent-hover);
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-nested);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-secondary-alt);
+}
+
+.chipError {
+  color: var(--warning);
+  cursor: help;
+}
+
+.chipRemove {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.chipRemove:hover {
+  color: var(--error);
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--error);
+}

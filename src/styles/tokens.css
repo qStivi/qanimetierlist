@@ -1,0 +1,35 @@
+:root {
+  --bg-app: #0f0f17;
+  --bg-panel: #1a1a2e;
+  --bg-nested: #12121c;
+  --border: #2d2d44;
+  --border-hover: #3d3d54;
+
+  --text-primary: #e4e4e7;
+  --text-secondary: #8b8b9e;
+  --text-secondary-alt: #d4d4d8;
+  --text-tertiary: #6b6b7b;
+  --text-subtle: #4a4a5a;
+
+  --accent: #3d5afe;
+  --accent-hover: #536dfe;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --star: #f5c542;
+
+  --radius-sm: 4px;
+  --radius-btn: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+
+  /* Classic tier accent colors, used for the default S..F labels */
+  --tier-s: #ff7f7f;
+  --tier-a: #ffbf7f;
+  --tier-b: #ffdf7f;
+  --tier-c: #ffff7f;
+  --tier-d: #bfff7f;
+  --tier-e: #7fdfff;
+  --tier-f: #9f9fff;
+}

@@ -1,0 +1,10 @@
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+}

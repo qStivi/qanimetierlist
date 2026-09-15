@@ -1,0 +1,43 @@
+.pool {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.count {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.dropzone {
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  flex-wrap: wrap;
+  background: var(--bg-nested);
+  transition: background-color 0.15s;
+}
+
+.dropzoneOver {
+  background: rgba(61, 90, 254, 0.12);
+}
+
+.empty {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  margin: 0;
+}

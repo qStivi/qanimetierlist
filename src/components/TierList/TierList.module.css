@@ -1,0 +1,4 @@
+.tiers {
+  display: flex;
+  flex-direction: column;
+}

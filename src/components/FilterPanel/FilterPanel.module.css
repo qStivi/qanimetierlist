@@ -1,0 +1,45 @@
+.panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.numberInput,
+.select {
+  padding: 6px 8px;
+  background: var(--bg-nested);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.numberInput {
+  width: 90px;
+}
+
+.numberInput:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
