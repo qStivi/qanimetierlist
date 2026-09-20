@@ -18,23 +18,46 @@
   color: var(--text-secondary);
 }
 
-.numberInput,
-.select {
+.numberInput {
   padding: 6px 8px;
   background: var(--bg-nested);
   border: 1px solid var(--border);
   border-radius: var(--radius-btn);
   color: var(--text-primary);
   font-size: 13px;
-}
-
-.numberInput {
   width: 90px;
 }
 
-.numberInput:focus,
-.select:focus {
+.numberInput:focus {
   outline: none;
+  border-color: var(--accent);
+}
+
+.genderOptions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.genderOption {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.undoBtn {
+  padding: 6px 10px;
+  background: var(--bg-nested);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.undoBtn:hover {
   border-color: var(--accent);
 }
 

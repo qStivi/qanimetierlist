@@ -25,6 +25,6 @@ export interface Tier {
 
 export interface CharacterFilters {
   minFavourites: number;
-  /** A gender string observed on AniList, or 'ANY' to disable the filter. */
-  gender: string | 'ANY';
+  /** Genders to include; empty means no gender filter (show every gender). */
+  genders: string[];
 }

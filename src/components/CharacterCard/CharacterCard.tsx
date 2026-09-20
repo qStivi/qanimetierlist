@@ -5,11 +5,26 @@ import styles from './CharacterCard.module.css';
 interface CharacterCardProps {
   character: Character;
   isDragging?: boolean;
+  onDelete: (characterId: number) => void;
 }
 
-export const CharacterCard = memo(function CharacterCard({ character, isDragging = false }: CharacterCardProps) {
+export const CharacterCard = memo(function CharacterCard({ character, isDragging = false, onDelete }: CharacterCardProps) {
   return (
     <div className={`${styles.card} ${isDragging ? styles.dragging : ''}`}>
+      <button
+        type="button"
+        className={styles.deleteBtn}
+        title={`Remove ${character.name.full}`}
+        // dnd-kit's drag listeners live on an ancestor of this button; without
+        // stopping the pointer event here, a "click" to delete starts a drag instead.
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => {
+          e.stopPropagation();
+          onDelete(character.id);
+        }}
+      >
+        ×
+      </button>
       <img
         src={character.image.large}
         alt={character.name.full}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTierList } from '../../context/useTierList';
 import type { CharacterFilters } from '../../api/types';
 import type { TierListAction } from '../../context/tierListStore';
-import { getObservedGenders } from '../../utils/filterCharacters';
+import { getObservedGenders, UNKNOWN_GENDER } from '../../utils/filterCharacters';
 import { debounce } from '../../utils/debounce';
 import styles from './FilterPanel.module.css';
 
@@ -30,8 +30,10 @@ export function FilterPanel() {
     debouncedApplyMinFavourites(minFavourites, state.filters, dispatch);
   }
 
-  function handleGenderChange(value: string) {
-    dispatch({ type: 'SET_FILTERS', filters: { ...state.filters, gender: value } });
+  function toggleGender(gender: string) {
+    const current = state.filters.genders;
+    const genders = current.includes(gender) ? current.filter(g => g !== gender) : [...current, gender];
+    dispatch({ type: 'SET_FILTERS', filters: { ...state.filters, genders } });
   }
 
   return (
@@ -47,17 +49,34 @@ export function FilterPanel() {
         />
       </label>
 
-      <label className={styles.field}>
-        <span>Gender</span>
-        <select value={state.filters.gender} onChange={e => handleGenderChange(e.target.value)} className={styles.select}>
-          <option value="ANY">Any</option>
-          {genderOptions.map(g => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
-      </label>
+      {genderOptions.length > 0 && (
+        <div className={styles.field}>
+          <span>Gender</span>
+          <div className={styles.genderOptions}>
+            {genderOptions.map(g => (
+              <label key={g} className={styles.genderOption}>
+                <input
+                  type="checkbox"
+                  checked={state.filters.genders.includes(g)}
+                  onChange={() => toggleGender(g)}
+                />
+                {g === UNKNOWN_GENDER ? 'Unknown' : g}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {state.hiddenCharacters.length > 0 && (
+        <button
+          type="button"
+          className={styles.undoBtn}
+          onClick={() => dispatch({ type: 'UNDO_DELETE' })}
+          title="Undo the most recent manual removal"
+        >
+          ↩ Undo remove "{state.hiddenCharacters[state.hiddenCharacters.length - 1].character.name.full}"
+        </button>
+      )}
 
       <span className={styles.count}>{state.characters.length} shown</span>
     </div>

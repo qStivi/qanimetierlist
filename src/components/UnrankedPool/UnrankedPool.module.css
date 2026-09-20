@@ -21,6 +21,27 @@
   font-weight: 400;
 }
 
+.shuffleBtn {
+  margin-left: auto;
+  padding: 6px 10px;
+  background: var(--bg-nested);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.shuffleBtn:not(:disabled):hover {
+  border-color: var(--accent);
+}
+
+.shuffleBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .dropzone {
   min-height: 100px;
   display: flex;

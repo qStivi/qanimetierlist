@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTierList } from '../../context/useTierList';
-import { getAllFavouriteCharacters } from '../../api/anilist';
-import { dedupeCharacters, type FetchedForUser } from '../../utils/characterUtils';
+import { getAllFinishedCharacters } from '../../api/anilist';
+import { formatEta } from '../../utils/formatTime';
 import styles from './UsernameInput.module.css';
 
 export function UsernameInput() {
@@ -30,15 +30,26 @@ export function UsernameInput() {
     dispatch({ type: 'FETCH_START', usernames: pendingUsernames });
     setPerUserError({});
 
-    const fetched: FetchedForUser[] = [];
     const errors: Record<string, string> = {};
+    let anySucceeded = false;
 
     // Fetched sequentially (not in parallel) so the shared rate limiter's
     // request-window tracking stays accurate across all usernames.
-    for (const username of pendingUsernames) {
+    for (let i = 0; i < pendingUsernames.length; i++) {
+      const username = pendingUsernames[i];
       try {
-        const characters = await getAllFavouriteCharacters(username);
-        fetched.push({ username, characters });
+        await getAllFinishedCharacters(
+          username,
+          state.filters.minFavourites,
+          progress => {
+            dispatch({
+              type: 'FETCH_PROGRESS',
+              progress: { ...progress, username, usernameIndex: i, usernameCount: pendingUsernames.length },
+            });
+          },
+          batch => dispatch({ type: 'MERGE_CHARACTERS', username, characters: batch })
+        );
+        anySucceeded = true;
       } catch (err) {
         errors[username] = err instanceof Error ? err.message : 'Failed to load';
       }
@@ -46,12 +57,12 @@ export function UsernameInput() {
 
     setPerUserError(errors);
 
-    if (fetched.length === 0) {
+    if (!anySucceeded) {
       dispatch({ type: 'FETCH_ERROR', error: 'None of the usernames could be loaded.' });
       return;
     }
 
-    dispatch({ type: 'FETCH_SUCCESS', characters: dedupeCharacters(fetched) });
+    dispatch({ type: 'FETCH_DONE' });
   }
 
   return (
@@ -71,7 +82,7 @@ export function UsernameInput() {
           + Add
         </button>
         <button className={styles.loadBtn} onClick={handleLoad} disabled={state.isLoading || pendingUsernames.length === 0}>
-          {state.isLoading ? 'Loading…' : 'Load Favorites'}
+          {state.isLoading ? 'Loading…' : 'Load Characters'}
         </button>
       </div>
 
@@ -86,6 +97,23 @@ export function UsernameInput() {
               </button>
             </span>
           ))}
+        </div>
+      )}
+
+      {state.loadProgress && (
+        <div className={styles.progress}>
+          <p className={styles.progressLabel}>
+            Loading {state.loadProgress.username}
+            {state.loadProgress.usernameCount > 1 &&
+              ` (user ${state.loadProgress.usernameIndex + 1}/${state.loadProgress.usernameCount})`}
+            : {state.loadProgress.processedAnime}/{state.loadProgress.totalAnime} anime —{' '}
+            {formatEta(state.loadProgress.etaSeconds)}
+          </p>
+          <progress
+            className={styles.progressBar}
+            value={state.loadProgress.processedAnime}
+            max={state.loadProgress.totalAnime}
+          />
         </div>
       )}
 

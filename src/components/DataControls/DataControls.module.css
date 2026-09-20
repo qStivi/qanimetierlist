@@ -1,0 +1,31 @@
+.panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border);
+  background: var(--bg-nested);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--error);
+}
