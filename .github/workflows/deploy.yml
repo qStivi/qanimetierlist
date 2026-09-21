@@ -1,0 +1,22 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, anime-tierlist]
+    steps:
+      - name: Update working copy
+        run: |
+          cd /opt/qanimetierlist-prod
+          git fetch origin main
+          git reset --hard origin/main
+      - name: Install and build
+        run: |
+          cd /opt/qanimetierlist-prod
+          npm ci
+          npm run build
+      - name: Restart app
+        run: pm2 restart qanimetierlist-prod
