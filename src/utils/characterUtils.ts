@@ -1,12 +1,12 @@
-import type { AniListCharacterNode, Character } from '../api/types';
+import type { AniListCharacterNode, Character, ListKey } from '../api/types';
 
 /**
- * Merges one AniList character node from `username`'s completed-anime cast
+ * Merges one AniList character node from `username`'s `list` (e.g. "ANIME:COMPLETED") cast
  * into `existing` (undefined if this character hasn't been seen before).
  *
  * Returns the *same* object reference when nothing actually changed, and a
- * new one only when something did (a new source username, or a higher
- * favourites count). This matters because `CharacterCard` is `React.memo`'d
+ * new one only when something did (a new source username, a new list, or a
+ * higher favourites count). This matters because `CharacterCard` is `React.memo`'d
  * on the `character` prop — during a streaming fetch this runs once per
  * character per batch, and most calls are no-ops (a character already seen
  * with no new information), so preserving reference equality keeps hundreds
@@ -15,6 +15,7 @@ import type { AniListCharacterNode, Character } from '../api/types';
 export function mergeCharacterNode(
   existing: Character | undefined,
   username: string,
+  list: ListKey,
   node: AniListCharacterNode
 ): Character {
   if (!existing) {
@@ -25,13 +26,15 @@ export function mergeCharacterNode(
       favourites: node.favourites ?? 0,
       gender: node.gender,
       sourceUsernames: [username],
+      lists: [list],
     };
   }
 
   const favourites = Math.max(existing.favourites, node.favourites ?? 0);
   const hasUsername = existing.sourceUsernames.includes(username);
+  const hasList = existing.lists.includes(list);
 
-  if (favourites === existing.favourites && hasUsername) {
+  if (favourites === existing.favourites && hasUsername && hasList) {
     return existing;
   }
 
@@ -39,5 +42,6 @@ export function mergeCharacterNode(
     ...existing,
     favourites,
     sourceUsernames: hasUsername ? existing.sourceUsernames : [...existing.sourceUsernames, username],
+    lists: hasList ? existing.lists : [...existing.lists, list],
   };
 }

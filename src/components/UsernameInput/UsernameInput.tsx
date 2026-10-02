@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTierList } from '../../context/useTierList';
-import { getAllFinishedCharacters } from '../../api/anilist';
+import { getAllListedCharacters } from '../../api/anilist';
 import { formatEta } from '../../utils/formatTime';
 import styles from './UsernameInput.module.css';
 
@@ -38,8 +38,9 @@ export function UsernameInput() {
     for (let i = 0; i < pendingUsernames.length; i++) {
       const username = pendingUsernames[i];
       try {
-        await getAllFinishedCharacters(
+        await getAllListedCharacters(
           username,
+          { mediaTypes: state.filters.mediaTypes, statuses: state.filters.statuses },
           state.filters.minFavourites,
           progress => {
             dispatch({
@@ -47,7 +48,7 @@ export function UsernameInput() {
               progress: { ...progress, username, usernameIndex: i, usernameCount: pendingUsernames.length },
             });
           },
-          batch => dispatch({ type: 'MERGE_CHARACTERS', username, characters: batch })
+          (batch, list) => dispatch({ type: 'MERGE_CHARACTERS', username, list, characters: batch })
         );
         anySucceeded = true;
       } catch (err) {
@@ -106,13 +107,13 @@ export function UsernameInput() {
             Loading {state.loadProgress.username}
             {state.loadProgress.usernameCount > 1 &&
               ` (user ${state.loadProgress.usernameIndex + 1}/${state.loadProgress.usernameCount})`}
-            : {state.loadProgress.processedAnime}/{state.loadProgress.totalAnime} anime —{' '}
+            : {state.loadProgress.processedMedia}/{state.loadProgress.totalMedia} titles —{' '}
             {formatEta(state.loadProgress.etaSeconds)}
           </p>
           <progress
             className={styles.progressBar}
-            value={state.loadProgress.processedAnime}
-            max={state.loadProgress.totalAnime}
+            value={state.loadProgress.processedMedia}
+            max={state.loadProgress.totalMedia}
           />
         </div>
       )}

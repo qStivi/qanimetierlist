@@ -1,8 +1,11 @@
-import type { Character, CharacterFilters } from '../api/types';
+import type { Character, CharacterFilters, ListStatus, MediaType } from '../api/types';
+import { LIST_STATUSES, MEDIA_TYPES, matchesLists } from './listSources';
 
 export const DEFAULT_FILTERS: CharacterFilters = {
   minFavourites: 0,
   genders: [],
+  mediaTypes: ['ANIME'],
+  statuses: ['COMPLETED'],
 };
 
 /**
@@ -11,6 +14,12 @@ export const DEFAULT_FILTERS: CharacterFilters = {
  * enter that a collision is not a practical concern.
  */
 export const UNKNOWN_GENDER = '__unknown__';
+
+/** Keeps only known values; falls back to `fallback` if nothing valid remains (the selection is never empty). */
+function validSelection<T extends string>(value: unknown, allowed: T[], fallback: T[]): T[] {
+  const valid = Array.isArray(value) ? allowed.filter(a => value.includes(a)) : [];
+  return valid.length > 0 ? valid : fallback;
+}
 
 /**
  * `genders` may come back non-array (or missing) from stale localStorage
@@ -21,6 +30,8 @@ export function normalizeFilters(filters: Partial<CharacterFilters> | null | und
   return {
     minFavourites: typeof filters?.minFavourites === 'number' ? filters.minFavourites : DEFAULT_FILTERS.minFavourites,
     genders: Array.isArray(filters?.genders) ? filters.genders : DEFAULT_FILTERS.genders,
+    mediaTypes: validSelection<MediaType>(filters?.mediaTypes, MEDIA_TYPES, DEFAULT_FILTERS.mediaTypes),
+    statuses: validSelection<ListStatus>(filters?.statuses, LIST_STATUSES, DEFAULT_FILTERS.statuses),
   };
 }
 
@@ -32,6 +43,7 @@ export function normalizeFilters(filters: Partial<CharacterFilters> | null | und
 export function filterCharacters(chars: Character[], filters: CharacterFilters): Character[] {
   return chars.filter(c => {
     if (c.favourites < filters.minFavourites) return false;
+    if (!matchesLists(c, filters.mediaTypes, filters.statuses)) return false;
     if (filters.genders.length === 0) return true;
     return c.gender === null ? filters.genders.includes(UNKNOWN_GENDER) : filters.genders.includes(c.gender);
   });

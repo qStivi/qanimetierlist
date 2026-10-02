@@ -1,14 +1,14 @@
-import type { AniListCharacterNode } from './types';
+import type { AniListCharacterNode, ListKey, ListStatus, MediaType } from './types';
 
 // AniList's GraphQL API is public/unauthenticated for this app's needs (reading
-// a user's completed anime list and its characters requires no login). Direct
+// a user's anime/manga lists and their characters requires no login). Direct
 // browser calls to https://graphql.anilist.co are CORS-allowed, so no backend
 // proxy is needed. If that ever changes, set VITE_ANILIST_API_URL to a proxy
 // path (see vite.config.ts for a dev-proxy example) instead of editing this constant.
 const API_URL = import.meta.env.VITE_ANILIST_API_URL || 'https://graphql.anilist.co';
 
 const PER_PAGE = 25; // AniList's max page size
-// How many completed-anime entries to fetch per MediaListCollection request
+// How many list entries to fetch per MediaListCollection request
 // (its own "chunk"/"perChunk" pagination, separate from character pagination).
 const MEDIA_PER_CHUNK = 50;
 
@@ -92,7 +92,7 @@ async function graphqlRequest<T>(query: string, variables: Record<string, unknow
 
 // A cheap upfront query so progress/ETA has a known denominator before the
 // (potentially many-request) character fetch below even starts.
-const USER_COMPLETED_ANIME_COUNT_QUERY = `
+const USER_LIST_COUNTS_QUERY = `
   query ($name: String) {
     User(name: $name) {
       id
@@ -103,48 +103,72 @@ const USER_COMPLETED_ANIME_COUNT_QUERY = `
             count
           }
         }
+        manga {
+          statuses {
+            status
+            count
+          }
+        }
       }
     }
   }
 `;
 
-interface UserCompletedAnimeCountResponse {
+interface StatusCount {
+  status: string;
+  count: number;
+}
+
+interface UserListCountsResponse {
   User: {
     statistics: {
-      anime: {
-        statuses: Array<{ status: string; count: number }>;
-      };
+      anime: { statuses: StatusCount[] };
+      manga: { statuses: StatusCount[] };
     };
   } | null;
 }
 
-async function getCompletedAnimeCount(username: string): Promise<number> {
-  const data = await graphqlRequest<UserCompletedAnimeCountResponse>(USER_COMPLETED_ANIME_COUNT_QUERY, {
-    name: username,
-  });
+export interface ListSelection {
+  mediaTypes: MediaType[];
+  statuses: ListStatus[];
+}
+
+/** Every (media type, status) pair a selection covers, with how many list entries each has. */
+async function getListCounts(
+  username: string,
+  selection: ListSelection
+): Promise<Array<{ mediaType: MediaType; status: ListStatus; count: number }>> {
+  const data = await graphqlRequest<UserListCountsResponse>(USER_LIST_COUNTS_QUERY, { name: username });
 
   if (!data.User) {
     throw new Error(`AniList user "${username}" not found`);
   }
 
-  const completed = data.User.statistics.anime.statuses.find(s => s.status === 'COMPLETED');
-  return completed?.count ?? 0;
+  const { anime, manga } = data.User.statistics;
+  const statusesByType: Record<MediaType, StatusCount[]> = { ANIME: anime.statuses, MANGA: manga.statuses };
+
+  return selection.mediaTypes.flatMap(mediaType =>
+    selection.statuses.map(status => ({
+      mediaType,
+      status,
+      count: statusesByType[mediaType].find(s => s.status === status)?.count ?? 0,
+    }))
+  );
 }
 
 export interface FetchProgress {
-  processedAnime: number;
-  totalAnime: number;
+  processedMedia: number;
+  totalMedia: number;
   /** Estimated seconds remaining, or null until enough data has been seen to estimate. */
   etaSeconds: number | null;
 }
 
-// Characters are pulled straight from each completed anime's cast, nested
-// inside the MediaListCollection query, so we don't need one request per
-// anime. MediaListCollection is paginated with chunk/perChunk (its own
+// Characters are pulled straight from each list entry's cast, nested inside
+// the MediaListCollection query, so we don't need one request per title. MediaListCollection is paginated with chunk/perChunk (its own
 // pagination, separate from the nested `characters` connection below).
-const FINISHED_ANIME_CHARACTERS_QUERY = `
-  query ($name: String, $chunk: Int, $perChunk: Int, $charPerPage: Int) {
-    MediaListCollection(userName: $name, type: ANIME, status: COMPLETED, chunk: $chunk, perChunk: $perChunk) {
+const LIST_CHARACTERS_QUERY = `
+  query ($name: String, $type: MediaType, $status: MediaListStatus, $chunk: Int, $perChunk: Int, $charPerPage: Int) {
+    MediaListCollection(userName: $name, type: $type, status: $status, chunk: $chunk, perChunk: $perChunk) {
       hasNextChunk
       lists {
         entries {
@@ -173,7 +197,7 @@ const FINISHED_ANIME_CHARACTERS_QUERY = `
   }
 `;
 
-interface FinishedAnimeCharactersResponse {
+interface ListCharactersResponse {
   MediaListCollection: {
     hasNextChunk: boolean | null;
     lists: Array<{
@@ -190,7 +214,7 @@ interface FinishedAnimeCharactersResponse {
   } | null;
 }
 
-// Fallback for the (rare) anime with a cast larger than one character page —
+// Fallback for the (rare) title with a cast larger than one character page —
 // fetched per-media so the bulk query above doesn't have to over-fetch for
 // every anime just to cover a few outliers.
 const MEDIA_CHARACTERS_PAGE_QUERY = `
@@ -230,7 +254,7 @@ function lastFavourites(nodes: AniListCharacterNode[]): number {
 }
 
 /**
- * Fetches overflow character pages (2+) for one anime, sorted FAVOURITES_DESC.
+ * Fetches overflow character pages (2+) for one title, sorted FAVOURITES_DESC.
  * Stops as soon as a page's last (i.e. lowest-favourited) node drops below
  * `minFavouritesThreshold` — everything after it, on this page and any
  * further one, is guaranteed to be equal or lower, so it would never pass
@@ -262,97 +286,118 @@ async function getRemainingMediaCharacters(
 }
 
 /**
- * Fetches every character appearing in every anime on a user's completed
- * list, paginating the anime list itself until exhausted. Most anime fit
- * their full cast in one character page; the rare one that doesn't gets its
- * remaining pages fetched individually via getRemainingMediaCharacters.
+ * Fetches every character appearing in every title on the selected lists of a
+ * user — each chosen media type (anime/manga) crossed with each chosen list
+ * status — paginating each list until exhausted. Most titles fit their full
+ * cast in one character page; the rare one that doesn't gets its remaining
+ * pages fetched individually via getRemainingMediaCharacters.
  *
- * `onProgress` is called once up front (before any anime is processed, so a
- * progress UI has a total to show immediately) and again after each anime.
- * The ETA is derived from the actual average time-per-anime seen so far
+ * `onProgress` is called once up front (before any title is processed, so a
+ * progress UI has a total to show immediately) and again after each title.
+ * The ETA is derived from the actual average time-per-title seen so far
  * rather than a fixed estimate, so it self-corrects for rate-limit waits and
- * the occasional slower multi-page anime.
+ * the occasional slower multi-page title.
  *
- * `onBatch` is called once per anime, right after `onProgress`, with that
- * anime's cast, so a caller can render results incrementally instead of
- * waiting for the full list. A network response covers up to a whole chunk
- * of anime at once, so this also yields to the event loop between anime —
- * without that, everything from one response would land in a single React
- * render regardless of how many times onBatch fired.
+ * `onBatch` is called once per title, right after `onProgress`, with that
+ * title's cast and the list it came from, so a caller can render results
+ * incrementally instead of waiting for the full list. A network response
+ * covers up to a whole chunk of titles at once, so this also yields to the
+ * event loop between titles — without that, everything from one response
+ * would land in a single React render regardless of how many times onBatch
+ * fired.
  *
- * `minFavouritesThreshold` prunes fetching, not just display: each anime's
- * cast is fetched sorted FAVOURITES_DESC, and pagination for that anime stops
+ * `minFavouritesThreshold` prunes fetching, not just display: each title's
+ * cast is fetched sorted FAVOURITES_DESC, and pagination for that title stops
  * (even on page 1 — no page 2 request at all) as soon as the last node seen
  * drops below the threshold, since everything past it is guaranteed to be
  * equal or lower and would be filtered out client-side anyway. Pass `0` (the
  * default `minFavourites` filter value) to fetch every character, since
  * favourites can never be negative and the cutoff can then never trigger.
  */
-export async function getAllFinishedCharacters(
+export async function getAllListedCharacters(
   username: string,
+  selection: ListSelection,
   minFavouritesThreshold: number,
   onProgress?: (progress: FetchProgress) => void,
-  onBatch?: (characters: AniListCharacterNode[]) => void
+  onBatch?: (characters: AniListCharacterNode[], list: ListKey) => void
 ): Promise<AniListCharacterNode[]> {
-  const totalAnime = await getCompletedAnimeCount(username);
-  if (totalAnime === 0) {
-    throw new Error(`AniList user "${username}" has no completed anime`);
+  const listCounts = await getListCounts(username, selection);
+  const totalMedia = listCounts.reduce((sum, l) => sum + l.count, 0);
+  if (totalMedia === 0) {
+    throw new Error(`AniList user "${username}" has no entries on the selected lists`);
   }
 
   const all: AniListCharacterNode[] = [];
   const startTime = Date.now();
-  let processedAnime = 0;
-  let chunk = 1;
+  let processedMedia = 0;
 
   const reportProgress = () => {
     if (!onProgress) return;
     const elapsedMs = Date.now() - startTime;
-    const avgMsPerAnime = processedAnime > 0 ? elapsedMs / processedAnime : null;
-    const remaining = Math.max(totalAnime - processedAnime, 0);
-    const etaSeconds = avgMsPerAnime !== null ? Math.round((avgMsPerAnime * remaining) / 1000) : null;
-    onProgress({ processedAnime, totalAnime, etaSeconds });
+    const avgMsPerMedia = processedMedia > 0 ? elapsedMs / processedMedia : null;
+    const remaining = Math.max(totalMedia - processedMedia, 0);
+    const etaSeconds = avgMsPerMedia !== null ? Math.round((avgMsPerMedia * remaining) / 1000) : null;
+    // The upfront count is a statistic that can lag the live list slightly;
+    // never let the bar overflow if it undercounted.
+    onProgress({ processedMedia, totalMedia: Math.max(totalMedia, processedMedia), etaSeconds });
   };
 
   reportProgress();
 
-  while (true) {
-    const data = await graphqlRequest<FinishedAnimeCharactersResponse>(FINISHED_ANIME_CHARACTERS_QUERY, {
-      name: username,
-      chunk,
-      perChunk: MEDIA_PER_CHUNK,
-      charPerPage: PER_PAGE,
-    });
+  for (const { mediaType, status, count } of listCounts) {
+    if (count === 0) continue;
 
-    if (!data.MediaListCollection) {
-      throw new Error(`AniList user "${username}" not found`);
-    }
+    const list: ListKey = `${mediaType}:${status}`;
+    // A status-filtered collection can still return the same entry under more
+    // than one list (a custom list as well as the status list); count and
+    // emit each title once.
+    const seenMediaIds = new Set<number>();
+    let chunk = 1;
 
-    for (const list of data.MediaListCollection.lists) {
-      for (const entry of list.entries) {
-        const { id: mediaId, characters } = entry.media;
-        const animeCharacters = [...characters.nodes];
+    while (true) {
+      const data = await graphqlRequest<ListCharactersResponse>(LIST_CHARACTERS_QUERY, {
+        name: username,
+        type: mediaType,
+        status,
+        chunk,
+        perChunk: MEDIA_PER_CHUNK,
+        charPerPage: PER_PAGE,
+      });
 
-        if (characters.pageInfo.hasNextPage && lastFavourites(characters.nodes) >= minFavouritesThreshold) {
-          animeCharacters.push(...(await getRemainingMediaCharacters(mediaId, 2, minFavouritesThreshold)));
-        }
-
-        all.push(...animeCharacters);
-        onBatch?.(animeCharacters);
-
-        processedAnime++;
-        reportProgress();
-
-        // A whole chunk's anime arrive in one network response, so without
-        // this the entries loop runs synchronously and React batches every
-        // dispatch from it into a single render anyway — it would look
-        // identical to one chunk-sized jump. Yielding here lets the browser
-        // actually paint between anime.
-        await new Promise(resolve => setTimeout(resolve, 0));
+      if (!data.MediaListCollection) {
+        throw new Error(`AniList user "${username}" not found`);
       }
-    }
 
-    if (!data.MediaListCollection.hasNextChunk) break;
-    chunk++;
+      for (const entryList of data.MediaListCollection.lists) {
+        for (const entry of entryList.entries) {
+          const { id: mediaId, characters } = entry.media;
+          if (seenMediaIds.has(mediaId)) continue;
+          seenMediaIds.add(mediaId);
+
+          const mediaCharacters = [...characters.nodes];
+
+          if (characters.pageInfo.hasNextPage && lastFavourites(characters.nodes) >= minFavouritesThreshold) {
+            mediaCharacters.push(...(await getRemainingMediaCharacters(mediaId, 2, minFavouritesThreshold)));
+          }
+
+          all.push(...mediaCharacters);
+          onBatch?.(mediaCharacters, list);
+
+          processedMedia++;
+          reportProgress();
+
+          // A whole chunk's titles arrive in one network response, so without
+          // this the entries loop runs synchronously and React batches every
+          // dispatch from it into a single render anyway — it would look
+          // identical to one chunk-sized jump. Yielding here lets the browser
+          // actually paint between titles.
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+
+      if (!data.MediaListCollection.hasNextChunk) break;
+      chunk++;
+    }
   }
 
   return all;

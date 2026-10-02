@@ -1,8 +1,9 @@
 import { createContext, type Dispatch } from 'react';
-import type { AniListCharacterNode, Character, CharacterFilters, Tier } from '../api/types';
+import type { AniListCharacterNode, Character, CharacterFilters, ListKey, Tier } from '../api/types';
 import type { FetchProgress } from '../api/anilist';
 import { filterCharacters, normalizeFilters, DEFAULT_FILTERS } from '../utils/filterCharacters';
 import { mergeCharacterNode } from '../utils/characterUtils';
+import { LEGACY_LISTS } from '../utils/listSources';
 import { shuffleArray } from '../utils/shuffle';
 
 export interface LoadProgress extends FetchProgress {
@@ -46,7 +47,7 @@ export interface TierListState {
 export type TierListAction =
   | { type: 'FETCH_START'; usernames: string[] }
   | { type: 'FETCH_PROGRESS'; progress: LoadProgress }
-  | { type: 'MERGE_CHARACTERS'; username: string; characters: AniListCharacterNode[] }
+  | { type: 'MERGE_CHARACTERS'; username: string; list: ListKey; characters: AniListCharacterNode[] }
   | { type: 'FETCH_DONE' }
   | { type: 'FETCH_ERROR'; error: string }
   | { type: 'SET_FILTERS'; filters: CharacterFilters }
@@ -197,7 +198,7 @@ export function tierListReducer(state: TierListState, action: TierListAction): T
 
       for (const node of action.characters) {
         if (deletedSet.has(node.id)) continue;
-        byId.set(node.id, mergeCharacterNode(byId.get(node.id), action.username, node));
+        byId.set(node.id, mergeCharacterNode(byId.get(node.id), action.username, action.list, node));
       }
 
       const allCharacters = Array.from(byId.values());
@@ -373,9 +374,11 @@ export function initTierListState(): TierListState {
   const usernames = loadJSON<string[]>(USERNAMES_KEY, []);
   const filters = normalizeFilters(loadJSON<Partial<CharacterFilters>>(FILTERS_KEY, DEFAULT_FILTERS));
   const deletedIds = loadJSON<number[]>(DELETED_IDS_KEY, []);
-  const hiddenCharacters = loadJSON<DeletedEntry[]>(HIDDEN_CHARACTERS_KEY, []);
+  const hiddenCharacters = loadJSON<DeletedEntry[]>(HIDDEN_CHARACTERS_KEY, []).map(withListsEntry);
   const deletedSet = new Set(deletedIds);
-  const allCharacters = loadJSON<Character[]>(CHARACTERS_CACHE_KEY, []).filter(c => !deletedSet.has(c.id));
+  const allCharacters = loadJSON<Character[]>(CHARACTERS_CACHE_KEY, [])
+    .filter(c => !deletedSet.has(c.id))
+    .map(withLists);
   const characters = applySavedOrder(filterCharacters(allCharacters, filters), assignments);
 
   return {
@@ -457,6 +460,19 @@ function isValidCharacter(v: unknown): v is Character {
   );
 }
 
+/**
+ * Characters cached or exported before manga/status support have no `lists`;
+ * they were all loaded from completed anime, so that's what they get.
+ */
+function withLists(c: Character): Character {
+  const lists = Array.isArray(c.lists) && c.lists.length > 0 ? c.lists : LEGACY_LISTS;
+  return c.lists === lists ? c : { ...c, lists };
+}
+
+function withListsEntry(e: DeletedEntry): DeletedEntry {
+  return { ...e, character: withLists(e.character) };
+}
+
 function isValidDeletedEntry(v: unknown): v is DeletedEntry {
   return isPlainObject(v) && isValidCharacter(v.character) && (v.tierId === null || typeof v.tierId === 'string');
 }
@@ -498,7 +514,7 @@ export function parseImportBundle(raw: unknown): TierListExportBundle {
   // failing the whole import — `deletedIds` above already covers exclusion.
   const hiddenCharacters =
     Array.isArray(raw.hiddenCharacters) && raw.hiddenCharacters.every(isValidDeletedEntry)
-      ? raw.hiddenCharacters
+      ? raw.hiddenCharacters.map(withListsEntry)
       : [];
 
   return {
@@ -510,7 +526,7 @@ export function parseImportBundle(raw: unknown): TierListExportBundle {
     filters: normalizeFilters(isPlainObject(raw.filters) ? (raw.filters as Partial<CharacterFilters>) : null),
     deletedIds: raw.deletedIds,
     hiddenCharacters,
-    allCharacters: raw.allCharacters,
+    allCharacters: raw.allCharacters.map(withLists),
     order: raw.order as Record<string, number[]>,
   };
 }
