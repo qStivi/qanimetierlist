@@ -1,0 +1,8 @@
+# qanimetierlist
+
+> A client-side tier list maker for anime characters. Enter AniList usernames, load characters from their finished anime, and drag them into S–F tiers. No backend; data comes from the public AniList GraphQL API.
+
+## Pages
+
+- [Tier list maker](https://qanimetierlist.qstivi.com/): the whole app, a single page
+- [Source code](https://github.com/qStivi/qanimetierlist): GitHub repository
