@@ -55,7 +55,13 @@ export function HiddenCharacters() {
           ) : (
             [...hidden].reverse().map(({ character }) => (
               <div key={character.id} className={styles.row}>
-                <img src={character.image.large} alt={character.name.full} className={styles.thumb} />
+                <img
+                  src={character.image.medium ?? character.image.large}
+                  width={32}
+                  height={32}
+                  alt={character.name.full}
+                  className={styles.thumb}
+                />
                 <span className={styles.name} title={character.name.full}>
                   {character.name.full}
                 </span>

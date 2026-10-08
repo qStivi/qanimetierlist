@@ -26,7 +26,15 @@ export const CharacterCard = memo(function CharacterCard({ character, isDragging
         ×
       </button>
       <img
-        src={character.image.large}
+        src={character.image.medium ?? character.image.large}
+        srcSet={
+          character.image.medium
+            ? `${character.image.medium} 100w, ${character.image.large} 230w`
+            : undefined
+        }
+        sizes="100px"
+        width={100}
+        height={140}
         alt={character.name.full}
         className={styles.image}
         loading="lazy"
