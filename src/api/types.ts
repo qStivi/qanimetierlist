@@ -1,7 +1,7 @@
 export interface AniListCharacterNode {
   id: number;
   name: { full: string };
-  image: { large: string };
+  image: { large: string; medium: string };
   favourites: number | null;
   gender: string | null;
 }
@@ -21,7 +21,8 @@ export type ListKey = `${MediaType}:${ListStatus}`;
 export interface Character {
   id: number;
   name: { full: string };
-  image: { large: string };
+  /** `medium` is absent on characters saved before it was requested. */
+  image: { large: string; medium?: string };
   favourites: number;
   gender: string | null;
   /** AniList usernames whose favourites list this character was found in. */

@@ -185,6 +185,7 @@ const LIST_CHARACTERS_QUERY = `
                 }
                 image {
                   large
+                  medium
                 }
                 favourites
                 gender
@@ -231,6 +232,7 @@ const MEDIA_CHARACTERS_PAGE_QUERY = `
           }
           image {
             large
+            medium
           }
           favourites
           gender
