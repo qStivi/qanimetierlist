@@ -6,6 +6,9 @@ export interface AniListCharacterNode {
   gender: string | null;
 }
 
+/** Which kind of AniList entity the tier list ranks. */
+export type EntityMode = 'characters' | 'anime';
+
 export type MediaType = 'ANIME' | 'MANGA';
 
 /**
@@ -29,6 +32,36 @@ export interface Character {
   sourceUsernames: string[];
   /** Every (media type, list status) pair this character was found under. */
   lists: ListKey[];
+}
+
+export interface AniListMediaNode {
+  id: number;
+  title: { romaji: string; english: string | null; native: string | null };
+  coverImage: { large: string; medium: string };
+  averageScore: number | null;
+  episodes: number | null;
+  genres: string[];
+  favourites: number | null;
+}
+
+/** A ranked anime (media entry), normalized the way `Character` is for characters. */
+export interface AnimeEntry {
+  id: number;
+  title: { romaji: string; english: string | null; native: string | null };
+  image: { large: string; medium?: string };
+  averageScore: number | null;
+  episodes: number | null;
+  genres: string[];
+  favourites: number;
+  sourceUsernames: string[];
+  lists: ListKey[];
+}
+
+export interface AnimeFilters {
+  /** AniList averageScore is 0-100; entries below this are hidden. */
+  minScore: number;
+  /** List statuses to load and show anime from; never empty. */
+  statuses: ListStatus[];
 }
 
 export interface Tier {
