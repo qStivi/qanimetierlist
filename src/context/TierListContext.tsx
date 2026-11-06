@@ -16,6 +16,13 @@ export function TierListProvider({ mode, children }: { mode: EntityMode; childre
         : (entry: Entry) => characterAdapter.getEntryName(entry as Character),
     [mode]
   );
+  const entryUrl = useMemo(
+    () =>
+      mode === 'anime'
+        ? (entry: Entry) => animeAdapter.getEntryUrl(entry as AnimeEntry)
+        : (entry: Entry) => characterAdapter.getEntryUrl(entry as Character),
+    [mode]
+  );
 
-  return <TierListContext.Provider value={{ state, dispatch, mode, entryName }}>{children}</TierListContext.Provider>;
+  return <TierListContext.Provider value={{ state, dispatch, mode, entryName, entryUrl }}>{children}</TierListContext.Provider>;
 }

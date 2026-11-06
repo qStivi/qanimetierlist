@@ -10,19 +10,27 @@ interface EntryCardProps {
 }
 
 export const EntryCard = memo(function EntryCard({ entry, isDragging = false, onDelete }: EntryCardProps) {
-  const { entryName } = useTierList();
+  const { entryName, entryUrl } = useTierList();
   const name = entryName(entry);
 
   return (
-    <div className={`${styles.card} ${isDragging ? styles.dragging : ''}`}>
+    <a
+      className={`${styles.card} ${isDragging ? styles.dragging : ''}`}
+      href={entryUrl(entry)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={name}
+    >
       <button
         type="button"
         className={styles.deleteBtn}
         title={`Remove ${name}`}
         // dnd-kit's drag listeners live on an ancestor of this button; without
         // stopping the pointer event here, a "click" to delete starts a drag instead.
+        // preventDefault keeps the click from also following the card's AniList link.
         onPointerDown={e => e.stopPropagation()}
         onClick={e => {
+          e.preventDefault();
           e.stopPropagation();
           onDelete(entry.id);
         }}
@@ -55,6 +63,6 @@ export const EntryCard = memo(function EntryCard({ entry, isDragging = false, on
           {entry.favourites.toLocaleString()}
         </span>
       </div>
-    </div>
+    </a>
   );
 });

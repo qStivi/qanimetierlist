@@ -32,6 +32,8 @@ export interface EntryAdapter<Node, Entry, Filters> {
   /** Display name and image for a card. */
   getEntryName(entry: Entry): string;
   getEntryImage(entry: Entry): string;
+  /** AniList page for the entry, e.g. https://anilist.co/anime/21. */
+  getEntryUrl(entry: Entry): string;
   /** The numeric filter value usable as a fetch-time pruning threshold. */
   thresholdFromFilters(filters: Filters): number;
 }
