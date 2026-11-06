@@ -24,5 +24,6 @@ export const characterAdapter: CharacterAdapter = {
   defaultFilters: DEFAULT_FILTERS,
   getEntryName: entry => entry.name.full,
   getEntryImage: entry => entry.image.large,
+  getEntryUrl: entry => `https://anilist.co/character/${entry.id}`,
   thresholdFromFilters: filters => filters.minFavourites,
 };

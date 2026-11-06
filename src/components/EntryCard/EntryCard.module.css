@@ -1,5 +1,6 @@
 .card {
   position: relative;
+  display: block;
   width: 100px;
   height: 140px;
   border-radius: var(--radius-sm);
@@ -9,6 +10,8 @@
   background: var(--bg-nested);
   flex-shrink: 0;
   transition: border-color 0.15s;
+  color: inherit;
+  text-decoration: none;
 }
 
 .card:hover {

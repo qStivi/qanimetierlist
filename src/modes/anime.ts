@@ -23,5 +23,6 @@ export const animeAdapter: AnimeAdapter = {
   defaultFilters: DEFAULT_ANIME_FILTERS,
   getEntryName: entry => entry.title.english ?? entry.title.romaji,
   getEntryImage: entry => entry.image.large,
+  getEntryUrl: entry => `https://anilist.co/anime/${entry.id}`,
   thresholdFromFilters: () => 0,
 };

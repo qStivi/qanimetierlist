@@ -425,6 +425,7 @@ export interface TierListContextType {
   dispatch: Dispatch<TierListAction>;
   mode: EntityMode;
   entryName: (entry: Entry) => string;
+  entryUrl: (entry: Entry) => string;
 }
 
 export const TierListContext = createContext<TierListContextType | null>(null);
