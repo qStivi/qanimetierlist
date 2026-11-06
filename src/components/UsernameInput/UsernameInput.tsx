@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { useTierList } from '../../context/useTierList';
-import { getAllListedCharacters } from '../../api/anilist';
+import { useMode } from '../../context/useMode';
+import { animeAdapter, characterAdapter } from '../../modes';
+import type { AnimeFilters, CharacterFilters } from '../../api/types';
 import { formatEta } from '../../utils/formatTime';
 import styles from './UsernameInput.module.css';
 
 export function UsernameInput() {
   const { state, dispatch } = useTierList();
+  const { mode } = useMode();
   const [pendingUsernames, setPendingUsernames] = useState<string[]>(state.usernames);
   const [inputValue, setInputValue] = useState('');
   const [perUserError, setPerUserError] = useState<Record<string, string>>({});
+
+  const loadLabel = mode === 'anime' ? 'Load Anime' : 'Load Characters';
 
   function addUsername() {
     const name = inputValue.trim();
@@ -33,22 +38,31 @@ export function UsernameInput() {
     const errors: Record<string, string> = {};
     let anySucceeded = false;
 
+    const filters = state.filters;
+    const selection =
+      mode === 'anime'
+        ? { mediaTypes: ['ANIME' as const], statuses: (filters as AnimeFilters).statuses }
+        : { mediaTypes: (filters as CharacterFilters).mediaTypes, statuses: (filters as CharacterFilters).statuses };
+    const threshold =
+      mode === 'anime' ? animeAdapter.thresholdFromFilters(filters as AnimeFilters) : characterAdapter.thresholdFromFilters(filters as CharacterFilters);
+    const fetchEntries = mode === 'anime' ? animeAdapter.fetchEntries : characterAdapter.fetchEntries;
+
     // Fetched sequentially (not in parallel) so the shared rate limiter's
     // request-window tracking stays accurate across all usernames.
     for (let i = 0; i < pendingUsernames.length; i++) {
       const username = pendingUsernames[i];
       try {
-        await getAllListedCharacters(
+        await fetchEntries(
           username,
-          { mediaTypes: state.filters.mediaTypes, statuses: state.filters.statuses },
-          state.filters.minFavourites,
+          selection,
+          threshold,
           progress => {
             dispatch({
               type: 'FETCH_PROGRESS',
               progress: { ...progress, username, usernameIndex: i, usernameCount: pendingUsernames.length },
             });
           },
-          (batch, list) => dispatch({ type: 'MERGE_CHARACTERS', username, list, characters: batch })
+          (batch, list) => dispatch({ type: 'MERGE_ENTRIES', username, list, nodes: batch })
         );
         anySucceeded = true;
       } catch (err) {
@@ -83,7 +97,7 @@ export function UsernameInput() {
           + Add
         </button>
         <button className={styles.loadBtn} onClick={handleLoad} disabled={state.isLoading || pendingUsernames.length === 0}>
-          {state.isLoading ? 'Loading…' : 'Load Characters'}
+          {state.isLoading ? 'Loading…' : loadLabel}
         </button>
       </div>
 

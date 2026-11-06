@@ -16,7 +16,7 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useTierList } from '../../context/useTierList';
 import { TierRow } from '../TierRow';
 import { UnrankedPool } from '../UnrankedPool';
-import { CharacterCard } from '../CharacterCard';
+import { EntryCard } from '../EntryCard';
 import { CONTAINER_PREFIX, toContainerKey, fromContainerKey } from '../../utils/containerIds';
 import styles from './TierList.module.css';
 
@@ -39,14 +39,14 @@ export function TierList() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const characters = state.characters;
+  const entries = state.entries;
   const tiers = state.tiers;
   const assignments = state.assignments;
 
   // Stable across renders (dispatch never changes) so it doesn't defeat
-  // CharacterCard's memoization for characters unrelated to a given delete.
+  // EntryCard's memoization for entries unrelated to a given delete.
   const handleDelete = useCallback(
-    (characterId: number) => dispatch({ type: 'DELETE_CHARACTER', characterId }),
+    (entryId: number) => dispatch({ type: 'DELETE_ENTRY', entryId }),
     [dispatch]
   );
 
@@ -62,8 +62,8 @@ export function TierList() {
     [dispatch]
   );
 
-  // Deliberately from state.assignments (every character), not the
-  // filtered/displayed `characters` — a character hidden by an active
+  // Deliberately from state.assignments (every entry), not the
+  // filtered/displayed `entries` — an entry hidden by an active
   // filter still occupies its tier and must still block removal.
   const nonEmptyTierIds = useMemo(() => new Set(Object.values(assignments).filter((t): t is string => t !== null)), [
     assignments,
@@ -75,16 +75,16 @@ export function TierList() {
   );
 
   const byContainer = useMemo(() => {
-    const map = new Map<string, typeof characters>();
+    const map = new Map<string, typeof entries>();
     map.set('pool', []);
     for (const tier of tiers) map.set(tier.id, []);
-    for (const c of characters) {
-      const key = toContainerKey(effectiveAssignments[c.id] ?? null);
+    for (const e of entries) {
+      const key = toContainerKey(effectiveAssignments[e.id] ?? null);
       if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(c);
+      map.get(key)!.push(e);
     }
     return map;
-  }, [characters, tiers, effectiveAssignments]);
+  }, [entries, tiers, effectiveAssignments]);
 
   function resolveContainerKey(id: string): string {
     if (id.startsWith(CONTAINER_PREFIX)) return id.slice(CONTAINER_PREFIX.length);
@@ -92,9 +92,9 @@ export function TierList() {
     return toContainerKey(effectiveAssignments[charId] ?? null);
   }
 
-  const activeCharacter = useMemo(
-    () => (activeId !== null ? (characters.find(c => c.id === activeId) ?? null) : null),
-    [characters, activeId]
+  const activeEntry = useMemo(
+    () => (activeId !== null ? (entries.find(e => e.id === activeId) ?? null) : null),
+    [entries, activeId]
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -126,26 +126,26 @@ export function TierList() {
       : state.assignments[draggedId] ?? null;
 
     if ((state.assignments[draggedId] ?? null) !== finalTierId) {
-      dispatch({ type: 'MOVE_CHARACTER', characterId: draggedId, tierId: finalTierId });
+      dispatch({ type: 'MOVE_ENTRY', entryId: draggedId, tierId: finalTierId });
     }
 
     if (!over) return;
 
     const containerKey = toContainerKey(finalTierId);
-    const containerChars = byContainer.get(containerKey) ?? [];
+    const containerEntries = byContainer.get(containerKey) ?? [];
     const overId = String(over.id);
     if (overId.startsWith(CONTAINER_PREFIX)) return;
 
-    const overCharId = Number(overId);
-    const oldIndex = containerChars.findIndex(c => c.id === draggedId);
-    const newIndex = containerChars.findIndex(c => c.id === overCharId);
+    const overEntryId = Number(overId);
+    const oldIndex = containerEntries.findIndex(e => e.id === draggedId);
+    const newIndex = containerEntries.findIndex(e => e.id === overEntryId);
     if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
 
-    const reordered = arrayMove(containerChars, oldIndex, newIndex);
+    const reordered = arrayMove(containerEntries, oldIndex, newIndex);
     dispatch({
       type: 'REORDER_TIER_CONTENTS',
       tierKey: fromContainerKey(containerKey),
-      orderedIds: reordered.map(c => c.id),
+      orderedIds: reordered.map(e => e.id),
     });
   }
 
@@ -158,14 +158,14 @@ export function TierList() {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <UnrankedPool characters={byContainer.get('pool') ?? []} onDelete={handleDelete} onShuffle={handleShuffle} />
+      <UnrankedPool entries={byContainer.get('pool') ?? []} onDelete={handleDelete} onShuffle={handleShuffle} />
 
       <div className={styles.tiers}>
         {state.tiers.map((tier, index) => (
           <TierRow
             key={tier.id}
             tier={tier}
-            characters={byContainer.get(tier.id) ?? []}
+            entries={byContainer.get(tier.id) ?? []}
             onRename={label => dispatch({ type: 'RENAME_TIER', tierId: tier.id, label })}
             onDelete={handleDelete}
             onRemoveTier={() => handleRemoveTier(tier.id)}
@@ -184,13 +184,13 @@ export function TierList() {
 
       {/*
         Without this, a dragged card is only ever a CSS transform on its
-        original DOM node (see SortableCharacter), which stays trapped in its
+        original DOM node (see SortableEntry), which stays trapped in its
         origin container's flex layout and stacking context — crossing into
         a different tier row then renders it behind other cards and it never
         visually "snaps" to the pointer. DragOverlay portals the dragged card
         to document.body instead, independent of any container's layout.
       */}
-      <DragOverlay>{activeCharacter && <CharacterCard character={activeCharacter} isDragging onDelete={handleDelete} />}</DragOverlay>
+      <DragOverlay>{activeEntry && <EntryCard entry={activeEntry} isDragging onDelete={handleDelete} />}</DragOverlay>
     </DndContext>
   );
 }

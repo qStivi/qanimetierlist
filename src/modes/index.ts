@@ -7,6 +7,7 @@ export const DEFAULT_MODE: EntityMode = 'characters';
 
 export function getAdapter(mode: 'characters'): CharacterAdapter;
 export function getAdapter(mode: 'anime'): AnimeAdapter;
+export function getAdapter(mode: EntityMode): CharacterAdapter | AnimeAdapter;
 export function getAdapter(mode: EntityMode): CharacterAdapter | AnimeAdapter {
   return mode === 'anime' ? animeAdapter : characterAdapter;
 }
