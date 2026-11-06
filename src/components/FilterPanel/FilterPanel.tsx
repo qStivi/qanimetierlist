@@ -26,6 +26,15 @@ export function FilterPanel() {
     [isCharacters, state.allEntries]
   );
 
+  // Usernames worth filtering by: everyone whose lists were loaded, plus
+  // anyone entries actually came from (a loaded user with no matching
+  // entries still shows up so the filter can be narrowed to them).
+  const userOptions = useMemo(() => {
+    const observed = new Set(state.allEntries.flatMap(e => e.sourceUsernames));
+    for (const u of state.usernames) observed.add(u);
+    return Array.from(observed).sort();
+  }, [state.allEntries, state.usernames]);
+
   // Selected lists that no loaded entry came from yet — either nothing is
   // on them or they simply haven't been fetched, which only a (re)load can fix.
   const hasUnloadedLists = useMemo(() => {
@@ -78,6 +87,13 @@ export function FilterPanel() {
     });
   }
 
+  // Unlike statuses, the user filter may be empty — empty means "show every user".
+  function toggleUser(user: string) {
+    const current = state.filters.usernames;
+    const usernames = current.includes(user) ? current.filter(u => u !== user) : [...current, user];
+    dispatch({ type: 'SET_FILTERS', filters: { ...state.filters, usernames } });
+  }
+
   return (
     <div className={styles.panel}>
       <label className={styles.field}>
@@ -125,6 +141,24 @@ export function FilterPanel() {
           ))}
         </div>
       </div>
+
+      {userOptions.length > 0 && (
+        <div className={styles.field}>
+          <span>Users</span>
+          <div className={styles.genderOptions}>
+            {userOptions.map(u => (
+              <label key={u} className={styles.genderOption}>
+                <input
+                  type="checkbox"
+                  checked={state.filters.usernames.length === 0 || state.filters.usernames.includes(u)}
+                  onChange={() => toggleUser(u)}
+                />
+                {u}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {hasUnloadedLists && (
         <span className={styles.hint}>

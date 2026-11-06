@@ -62,6 +62,8 @@ export interface AnimeFilters {
   minScore: number;
   /** List statuses to load and show anime from; never empty. */
   statuses: ListStatus[];
+  /** Usernames to show entries from; empty means no user filter (show all). */
+  usernames: string[];
 }
 
 /** Any rankable entry: a character in characters mode, an anime in anime mode. */
@@ -82,4 +84,6 @@ export interface CharacterFilters {
   mediaTypes: MediaType[];
   /** List statuses to load and show characters from; never empty. */
   statuses: ListStatus[];
+  /** Usernames to show entries from; empty means no user filter (show all). */
+  usernames: string[];
 }
