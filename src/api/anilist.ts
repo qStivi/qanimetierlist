@@ -1,4 +1,4 @@
-import type { AniListCharacterNode, ListKey, ListStatus, MediaType } from './types';
+import type { AniListCharacterNode, AniListMediaNode, ListKey, ListStatus, MediaType } from './types';
 
 // AniList's GraphQL API is public/unauthenticated for this app's needs (reading
 // a user's anime/manga lists and their characters requires no login). Direct
@@ -393,6 +393,127 @@ export async function getAllListedCharacters(
           // dispatch from it into a single render anyway — it would look
           // identical to one chunk-sized jump. Yielding here lets the browser
           // actually paint between titles.
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+
+      if (!data.MediaListCollection.hasNextChunk) break;
+      chunk++;
+    }
+  }
+
+  return all;
+}
+
+// Anime mode ranks the list entries' media themselves, so the fields come
+// straight off `media` — no nested `characters` connection, no overflow pages.
+const LIST_ANIME_QUERY = `
+  query ($name: String, $status: MediaListStatus, $chunk: Int, $perChunk: Int) {
+    MediaListCollection(userName: $name, type: ANIME, status: $status, chunk: $chunk, perChunk: $perChunk) {
+      hasNextChunk
+      lists {
+        entries {
+          media {
+            id
+            title {
+              romaji
+              english
+              native
+            }
+            coverImage {
+              large
+              medium
+            }
+            averageScore
+            episodes
+            genres
+            favourites
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface ListAnimeResponse {
+  MediaListCollection: {
+    hasNextChunk: boolean | null;
+    lists: Array<{
+      entries: Array<{
+        media: AniListMediaNode;
+      }>;
+    }>;
+  } | null;
+}
+
+/**
+ * Fetches every anime on the selected list statuses of a user, paginating each
+ * list until exhausted. Mirrors getAllListedCharacters' progress/batch
+ * contract; `minFavouritesThreshold` is accepted for adapter symmetry but not
+ * used  anime entries have no nested pagination to prune.
+ */
+export async function getAllListedAnime(
+  username: string,
+  selection: ListSelection,
+  _minFavouritesThreshold: number,
+  onProgress?: (progress: FetchProgress) => void,
+  onBatch?: (anime: AniListMediaNode[], list: ListKey) => void
+): Promise<AniListMediaNode[]> {
+  const animeSelection: ListSelection = { mediaTypes: ['ANIME'], statuses: selection.statuses };
+  const listCounts = await getListCounts(username, animeSelection);
+  const totalMedia = listCounts.reduce((sum, l) => sum + l.count, 0);
+  if (totalMedia === 0) {
+    throw new Error(`AniList user "${username}" has no entries on the selected lists`);
+  }
+
+  const all: AniListMediaNode[] = [];
+  const startTime = Date.now();
+  let processedMedia = 0;
+
+  const reportProgress = () => {
+    if (!onProgress) return;
+    const elapsedMs = Date.now() - startTime;
+    const avgMsPerMedia = processedMedia > 0 ? elapsedMs / processedMedia : null;
+    const remaining = Math.max(totalMedia - processedMedia, 0);
+    const etaSeconds = avgMsPerMedia !== null ? Math.round((avgMsPerMedia * remaining) / 1000) : null;
+    onProgress({ processedMedia, totalMedia: Math.max(totalMedia, processedMedia), etaSeconds });
+  };
+
+  reportProgress();
+
+  for (const { status, count } of listCounts) {
+    if (count === 0) continue;
+
+    const list: ListKey = `ANIME:${status}`;
+    // A status-filtered collection can still return the same entry under more
+    // than one list; emit each title once.
+    const seenMediaIds = new Set<number>();
+    let chunk = 1;
+
+    while (true) {
+      const data = await graphqlRequest<ListAnimeResponse>(LIST_ANIME_QUERY, {
+        name: username,
+        status,
+        chunk,
+        perChunk: MEDIA_PER_CHUNK,
+      });
+
+      if (!data.MediaListCollection) {
+        throw new Error(`AniList user "${username}" not found`);
+      }
+
+      for (const entryList of data.MediaListCollection.lists) {
+        for (const entry of entryList.entries) {
+          const media = entry.media;
+          if (seenMediaIds.has(media.id)) continue;
+          seenMediaIds.add(media.id);
+
+          all.push(media);
+          onBatch?.([media], list);
+
+          processedMedia++;
+          reportProgress();
+
           await new Promise(resolve => setTimeout(resolve, 0));
         }
       }

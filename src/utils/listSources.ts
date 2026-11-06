@@ -1,4 +1,4 @@
-import type { Character, ListKey, ListStatus, MediaType } from '../api/types';
+import type { ListKey, ListStatus, MediaType } from '../api/types';
 
 export const MEDIA_TYPES: MediaType[] = ['ANIME', 'MANGA'];
 
@@ -33,9 +33,9 @@ export function listKey(mediaType: MediaType, status: ListStatus): ListKey {
 /** Characters cached before manga/status support all came from completed anime. */
 export const LEGACY_LISTS: ListKey[] = ['ANIME:COMPLETED'];
 
-/** True if the character was found under at least one selected media type + status combination. */
-export function matchesLists(character: Character, mediaTypes: MediaType[], statuses: ListStatus[]): boolean {
-  return character.lists.some(key => {
+/** True if the entry was found under at least one selected media type + status combination. */
+export function matchesLists(entry: { lists: ListKey[] }, mediaTypes: MediaType[], statuses: ListStatus[]): boolean {
+  return entry.lists.some(key => {
     const [type, status] = key.split(':') as [MediaType, ListStatus];
     return mediaTypes.includes(type) && statuses.includes(status);
   });
