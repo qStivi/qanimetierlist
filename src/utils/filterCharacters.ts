@@ -6,6 +6,7 @@ export const DEFAULT_FILTERS: CharacterFilters = {
   genders: [],
   mediaTypes: ['ANIME'],
   statuses: ['COMPLETED'],
+  usernames: [],
 };
 
 /**
@@ -32,6 +33,7 @@ export function normalizeFilters(filters: Partial<CharacterFilters> | null | und
     genders: Array.isArray(filters?.genders) ? filters.genders : DEFAULT_FILTERS.genders,
     mediaTypes: validSelection<MediaType>(filters?.mediaTypes, MEDIA_TYPES, DEFAULT_FILTERS.mediaTypes),
     statuses: validSelection<ListStatus>(filters?.statuses, LIST_STATUSES, DEFAULT_FILTERS.statuses),
+    usernames: Array.isArray(filters?.usernames) ? filters.usernames.filter(u => typeof u === 'string') : [],
   };
 }
 
@@ -44,6 +46,7 @@ export function filterCharacters(chars: Character[], filters: CharacterFilters):
   return chars.filter(c => {
     if (c.favourites < filters.minFavourites) return false;
     if (!matchesLists(c, filters.mediaTypes, filters.statuses)) return false;
+    if (filters.usernames.length > 0 && !c.sourceUsernames.some(u => filters.usernames.includes(u))) return false;
     if (filters.genders.length === 0) return true;
     return c.gender === null ? filters.genders.includes(UNKNOWN_GENDER) : filters.genders.includes(c.gender);
   });

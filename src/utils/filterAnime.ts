@@ -4,6 +4,7 @@ import { LIST_STATUSES, matchesLists } from './listSources';
 export const DEFAULT_ANIME_FILTERS: AnimeFilters = {
   minScore: 0,
   statuses: ['COMPLETED'],
+  usernames: [],
 };
 
 /** Keeps only known statuses; falls back to the default if nothing valid remains (never empty). */
@@ -16,6 +17,7 @@ export function normalizeAnimeFilters(filters: Partial<AnimeFilters> | null | un
   return {
     minScore: typeof filters?.minScore === 'number' ? filters.minScore : DEFAULT_ANIME_FILTERS.minScore,
     statuses: validStatuses(filters?.statuses, DEFAULT_ANIME_FILTERS.statuses),
+    usernames: Array.isArray(filters?.usernames) ? filters.usernames.filter(u => typeof u === 'string') : [],
   };
 }
 
@@ -26,6 +28,7 @@ export function normalizeAnimeFilters(filters: Partial<AnimeFilters> | null | un
 export function filterAnime(entries: AnimeEntry[], filters: AnimeFilters): AnimeEntry[] {
   return entries.filter(e => {
     if ((e.averageScore ?? 0) < filters.minScore) return false;
-    return matchesLists(e, ['ANIME'], filters.statuses);
+    if (!matchesLists(e, ['ANIME'], filters.statuses)) return false;
+    return filters.usernames.length === 0 || e.sourceUsernames.some(u => filters.usernames.includes(u));
   });
 }
