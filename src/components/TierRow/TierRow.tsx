@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import type { Character, Tier } from '../../api/types';
-import { SortableCharacter } from '../SortableCharacter';
+import type { Entry, Tier } from '../../api/types';
+import { SortableEntry } from '../SortableEntry';
 import { containerIdForTier } from '../../utils/containerIds';
 import styles from './TierRow.module.css';
 
@@ -12,14 +12,14 @@ const DEFAULT_TIER_COLOR = '#cfd3e0';
 
 interface TierRowProps {
   tier: Tier;
-  characters: Character[];
+  entries: Entry[];
   onRename: (label: string) => void;
-  onDelete: (characterId: number) => void;
+  onDelete: (entryId: number) => void;
   onRemoveTier: () => void;
   onRecolor: (color: string) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
-  /** False if this tier holds any character, even one hidden by an active filter. */
+  /** False if this tier holds any entry, even one hidden by an active filter. */
   canRemoveTier: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
@@ -27,7 +27,7 @@ interface TierRowProps {
 
 export function TierRow({
   tier,
-  characters,
+  entries,
   onRename,
   onDelete,
   onRemoveTier,
@@ -47,7 +47,7 @@ export function TierRow({
   // dnd-kit think the sortable set changed and re-measure droppables — under
   // fast/erratic dragging across many tier boundaries that can cascade into
   // a "Maximum update depth exceeded" render loop.
-  const itemIds = useMemo(() => characters.map(c => String(c.id)), [characters]);
+  const itemIds = useMemo(() => entries.map(e => String(e.id)), [entries]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -96,7 +96,7 @@ export function TierRow({
             onRemoveTier();
           }}
           disabled={!canRemoveTier}
-          title={canRemoveTier ? 'Remove tier' : 'Move or delete its characters first to remove this tier'}
+          title={canRemoveTier ? 'Remove tier' : 'Move or delete its entries first to remove this tier'}
         >
           ×
         </button>
@@ -140,8 +140,8 @@ export function TierRow({
       </div>
       <div ref={setNodeRef} className={`${styles.dropzone} ${isOver ? styles.dropzoneOver : ''}`}>
         <SortableContext items={itemIds} strategy={horizontalListSortingStrategy}>
-          {characters.map(c => (
-            <SortableCharacter key={c.id} character={c} onDelete={onDelete} />
+          {entries.map(e => (
+            <SortableEntry key={e.id} entry={e} onDelete={onDelete} />
           ))}
         </SortableContext>
       </div>

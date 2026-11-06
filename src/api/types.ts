@@ -64,6 +64,9 @@ export interface AnimeFilters {
   statuses: ListStatus[];
 }
 
+/** Any rankable entry: a character in characters mode, an anime in anime mode. */
+export type Entry = Character | AnimeEntry;
+
 export interface Tier {
   /** Stable id — never changes, even when the tier is renamed. */
   id: string;

@@ -6,7 +6,7 @@ import type { AniListCharacterNode, Character, ListKey } from '../api/types';
  *
  * Returns the *same* object reference when nothing actually changed, and a
  * new one only when something did (a new source username, a new list, or a
- * higher favourites count). This matters because `CharacterCard` is `React.memo`'d
+ * higher favourites count). This matters because `EntryCard` is `React.memo`'d
  * on the `character` prop — during a streaming fetch this runs once per
  * character per batch, and most calls are no-ops (a character already seen
  * with no new information), so preserving reference equality keeps hundreds

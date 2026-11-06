@@ -14,3 +14,25 @@
   font-size: 13px;
   color: var(--text-tertiary);
 }
+
+.modeSwitch {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.modeBtn {
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.modeBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}

@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
 import { useTierList } from '../../context/useTierList';
+import { useMode } from '../../context/useMode';
 import { buildExportBundle, parseImportBundle, applyImportBundle, ImportValidationError } from '../../context/tierListStore';
 import styles from './DataControls.module.css';
 
 export function DataControls() {
   const { state, dispatch } = useTierList();
+  const { mode, setMode } = useMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -15,7 +17,7 @@ export function DataControls() {
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `qanimetierlist-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `qanimetierlist-${state.mode}-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
 
     URL.revokeObjectURL(url);
@@ -37,12 +39,19 @@ export function DataControls() {
     }
 
     const confirmed = window.confirm(
-      'Importing will replace your current tier list, filters, usernames, and hidden characters with the contents of this file. Continue?'
+      `Importing will replace your current ${bundle.mode} tier list, filters, usernames, and hidden entries with the contents of this file. Continue?`
     );
     if (!confirmed) return;
 
     const newState = applyImportBundle(bundle);
-    dispatch({ type: 'REPLACE_STATE', state: newState });
+    if (bundle.mode === mode) {
+      // Same mode: the provider isn't remounted, so swap the live state directly.
+      dispatch({ type: 'REPLACE_STATE', state: newState });
+    } else {
+      // Different mode: applyImportBundle already wrote that mode's storage
+      // keys; switching mode remounts the provider, which loads them.
+      setMode(bundle.mode);
+    }
   }
 
   return (

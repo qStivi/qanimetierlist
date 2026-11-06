@@ -1,34 +1,34 @@
 import { useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
-import type { Character } from '../../api/types';
-import { SortableCharacter } from '../SortableCharacter';
+import type { Entry } from '../../api/types';
+import { SortableEntry } from '../SortableEntry';
 import { POOL_CONTAINER_ID } from '../../utils/containerIds';
 import styles from './UnrankedPool.module.css';
 
 interface UnrankedPoolProps {
-  characters: Character[];
-  onDelete: (characterId: number) => void;
+  entries: Entry[];
+  onDelete: (entryId: number) => void;
   onShuffle: () => void;
 }
 
-export function UnrankedPool({ characters, onDelete, onShuffle }: UnrankedPoolProps) {
+export function UnrankedPool({ entries, onDelete, onShuffle }: UnrankedPoolProps) {
   const { setNodeRef, isOver } = useDroppable({ id: POOL_CONTAINER_ID });
   // A fresh array reference on every render (even with identical ids) makes
   // dnd-kit think the sortable set changed and re-measure droppables, which
   // under fast dragging can cascade into a render loop — see TierRow.
-  const itemIds = useMemo(() => characters.map(c => String(c.id)), [characters]);
+  const itemIds = useMemo(() => entries.map(e => String(e.id)), [entries]);
 
   return (
     <div className={styles.pool}>
       <div className={styles.header}>
         <span>Unranked</span>
-        <span className={styles.count}>{characters.length}</span>
+        <span className={styles.count}>{entries.length}</span>
         <button
           type="button"
           className={styles.shuffleBtn}
           onClick={onShuffle}
-          disabled={characters.length < 2}
+          disabled={entries.length < 2}
           title="Shuffle the unranked order"
         >
           🔀 Randomize
@@ -36,10 +36,10 @@ export function UnrankedPool({ characters, onDelete, onShuffle }: UnrankedPoolPr
       </div>
       <div ref={setNodeRef} className={`${styles.dropzone} ${isOver ? styles.dropzoneOver : ''}`}>
         <SortableContext items={itemIds} strategy={rectSortingStrategy}>
-          {characters.length === 0 ? (
-            <p className={styles.empty}>Load some AniList usernames above to see characters from their finished anime here.</p>
+          {entries.length === 0 ? (
+            <p className={styles.empty}>Load some AniList usernames above to see entries from their lists here.</p>
           ) : (
-            characters.map(c => <SortableCharacter key={c.id} character={c} onDelete={onDelete} />)
+            entries.map(e => <SortableEntry key={e.id} entry={e} onDelete={onDelete} />)
           )}
         </SortableContext>
       </div>

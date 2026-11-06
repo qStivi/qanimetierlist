@@ -1,1 +1,0 @@
-export { SortableCharacter } from './SortableCharacter';
