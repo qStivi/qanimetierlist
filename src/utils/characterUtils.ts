@@ -27,14 +27,16 @@ export function mergeCharacterNode(
       gender: node.gender,
       sourceUsernames: [username],
       lists: [list],
+      listsByUser: { [username]: [list] },
     };
   }
 
   const favourites = Math.max(existing.favourites, node.favourites ?? 0);
   const hasUsername = existing.sourceUsernames.includes(username);
   const hasList = existing.lists.includes(list);
+  const hasUserList = existing.listsByUser[username]?.includes(list) ?? false;
 
-  if (favourites === existing.favourites && hasUsername && hasList) {
+  if (favourites === existing.favourites && hasUsername && hasList && hasUserList) {
     return existing;
   }
 
@@ -43,5 +45,9 @@ export function mergeCharacterNode(
     favourites,
     sourceUsernames: hasUsername ? existing.sourceUsernames : [...existing.sourceUsernames, username],
     lists: hasList ? existing.lists : [...existing.lists, list],
+    listsByUser: {
+      ...existing.listsByUser,
+      [username]: hasUserList ? existing.listsByUser[username] : [...(existing.listsByUser[username] ?? []), list],
+    },
   };
 }

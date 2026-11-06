@@ -45,7 +45,7 @@ export function normalizeFilters(filters: Partial<CharacterFilters> | null | und
 export function filterCharacters(chars: Character[], filters: CharacterFilters): Character[] {
   return chars.filter(c => {
     if (c.favourites < filters.minFavourites) return false;
-    if (!matchesLists(c, filters.mediaTypes, filters.statuses)) return false;
+    if (!matchesLists(c, filters.mediaTypes, filters.statuses, filters.usernames)) return false;
     if (filters.usernames.length > 0 && !c.sourceUsernames.some(u => filters.usernames.includes(u))) return false;
     if (filters.genders.length === 0) return true;
     return c.gender === null ? filters.genders.includes(UNKNOWN_GENDER) : filters.genders.includes(c.gender);

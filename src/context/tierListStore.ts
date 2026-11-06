@@ -513,10 +513,14 @@ function isValidEntryFor(mode: EntityMode, v: unknown): v is Entry {
 /**
  * Entries cached or exported before manga/status support have no `lists`;
  * they were all loaded from completed anime, so that's what they get.
+ * Entries from before per-user list tracking have no `listsByUser` — every
+ * known source user gets the global `lists`, which reproduces the old behavior.
  */
 function withLists(e: Entry): Entry {
   const lists = Array.isArray(e.lists) && e.lists.length > 0 ? e.lists : LEGACY_LISTS;
-  return e.lists === lists ? e : { ...e, lists };
+  const listsByUser =
+    e.listsByUser ?? Object.fromEntries((e.sourceUsernames ?? []).map(u => [u, lists]));
+  return e.lists === lists && e.listsByUser === listsByUser ? e : { ...e, lists, listsByUser };
 }
 
 function withListsEntry(e: HiddenEntry): HiddenEntry {

@@ -32,6 +32,8 @@ export interface Character {
   sourceUsernames: string[];
   /** Every (media type, list status) pair this character was found under. */
   lists: ListKey[];
+  /** Per username: which list keys that user had the character under. */
+  listsByUser: Record<string, ListKey[]>;
 }
 
 export interface AniListMediaNode {
@@ -55,6 +57,8 @@ export interface AnimeEntry {
   favourites: number;
   sourceUsernames: string[];
   lists: ListKey[];
+  /** Per username: which list keys that user had the anime under. */
+  listsByUser: Record<string, ListKey[]>;
 }
 
 export interface AnimeFilters {
