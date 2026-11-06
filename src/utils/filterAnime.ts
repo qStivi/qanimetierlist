@@ -28,7 +28,7 @@ export function normalizeAnimeFilters(filters: Partial<AnimeFilters> | null | un
 export function filterAnime(entries: AnimeEntry[], filters: AnimeFilters): AnimeEntry[] {
   return entries.filter(e => {
     if ((e.averageScore ?? 0) < filters.minScore) return false;
-    if (!matchesLists(e, ['ANIME'], filters.statuses)) return false;
+    if (!matchesLists(e, ['ANIME'], filters.statuses, filters.usernames)) return false;
     return filters.usernames.length === 0 || e.sourceUsernames.some(u => filters.usernames.includes(u));
   });
 }
